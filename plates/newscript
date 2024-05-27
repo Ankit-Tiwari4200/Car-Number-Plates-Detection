@@ -1,0 +1,80 @@
+import os
+import cv2
+import pytesseract
+import concurrent.futures
+from googletrans import Translator
+
+# Path to the Haar Cascade file for plate detection
+harcascade = "model/haarcascade_russian_plate_number.xml"
+
+# Check if the Haar Cascade file exists
+if not os.path.exists(harcascade):
+    print("Error: Haar Cascade file not found.")
+    exit()
+
+# Initialize the webcam
+cap = cv2.VideoCapture(0)
+
+# Load the plate cascade classifier
+plate_cascade = cv2.CascadeClassifier(harcascade)
+
+# Initialize the translator
+translator = Translator()
+
+def process_frame(frame):
+    img_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    plates = plate_cascade.detectMultiScale(img_gray, scaleFactor=1.1, minNeighbors=3, minSize=(30, 30))
+
+    for (x, y, w, h) in plates:
+        area = w * h
+
+        if area > min_area:
+            img_roi = frame[y: y + h, x:x + w]
+            roi_gray = cv2.cvtColor(img_roi, cv2.COLOR_BGR2GRAY)
+            
+            # Apply image preprocessing techniques here if needed
+            
+            dev_text = pytesseract.image_to_string(roi_gray, lang='Devs', config='--psm 6')
+            print("Devanagari Text:", dev_text)
+            
+            # Translate Devanagari text to English
+            if dev_text:
+                english_translation = translator.translate(dev_text, src='hi', dest='en')
+                print("English Translation:", english_translation.text)
+                
+                # Save the generated text to a text file with UTF-8 encoding
+                with open('generated_text.txt', 'a', encoding='utf-8') as file:
+                    file.write(english_translation.text + '\n')
+            
+            cv2.putText(frame, dev_text, (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+
+    return frame
+
+min_area = 500
+
+while True:
+    ret, img = cap.read()
+
+    if not ret:
+        print("Error: Unable to read frame from webcam.")
+        break
+
+    # Resize the frame for faster processing
+    img = cv2.resize(img, (640, 480))
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        processed_frames = executor.map(process_frame, [img])
+
+        for frame in processed_frames:
+            cv2.imshow("Results", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('s'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+cv2.destroyAllWindows()
+cv2.destroyAllWindows()
+cv2.destroyAllWindows()
+cv2.destroyAllWindows()
+cv2.destroyAllWindows()

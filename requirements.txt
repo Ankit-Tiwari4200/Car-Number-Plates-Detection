@@ -1,1 +1,2 @@
-opencv-python
+open cv2
+Tesseract
